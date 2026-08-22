@@ -65,5 +65,5 @@ async def scan_for_job_applications(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Re-scan already-classified `job_application` emails and (re)link them into the tracker."""
+    """Classify unprocessed emails (batched) and link any job-application ones into the tracker."""
     return await job_application_service.backfill_from_processed_emails(db, current_user.id)

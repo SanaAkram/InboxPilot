@@ -4,8 +4,14 @@ from datetime import datetime, timezone
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.ai_extraction import AIExtraction
 from app.models.email import Email
 from app.models.job_application import JobApplication
+
+# Cap per scan run - keeps AI cost and (on serverless) function execution
+# time bounded. Re-clicking "Scan inbox" picks up where the last run left
+# off, since only unprocessed emails are ever selected.
+SCAN_BATCH_LIMIT = 50
 
 # Only forward progression through the pipeline updates `status` — a stray later
 # email that only re-confirms receipt shouldn't downgrade an "interviewing" row
@@ -207,28 +213,46 @@ async def delete(db: AsyncSession, user_id: uuid.UUID, app_id: uuid.UUID) -> boo
 
 async def backfill_from_processed_emails(db: AsyncSession, user_id: uuid.UUID) -> dict:
     """
-    Re-scans emails already classified as `job_application` (e.g. synced before this
-    module existed) and links/creates tracker rows for them. Idempotent.
+    Classifies every not-yet-processed email (up to SCAN_BATCH_LIMIT) and links/creates
+    tracker rows for whichever ones turn out to be job-application related. This is what
+    actually makes "Scan inbox" scan the inbox - emails only get a category via this or
+    the per-email "Run AI Processing" action, never automatically on sync. Idempotent:
+    already-processed emails are never re-selected, so re-running just picks up new mail.
     """
     from app.services import ai_service  # local import to avoid a circular import at module load
 
     result = await db.execute(
         select(Email)
-        .where(Email.user_id == user_id, Email.category == "job_application")
+        .where(Email.user_id == user_id, Email.processed.is_(False))
         .order_by(Email.received_at.asc())
+        .limit(SCAN_BATCH_LIMIT)
     )
     candidates = list(result.scalars().all())
 
     linked = 0
     for email in candidates:
-        details = await ai_service.extract_job_details(
-            subject=email.subject or "",
-            body=email.body or "",
-            sender=f"{email.sender_name} <{email.sender_email}>",
+        sender = f"{email.sender_name} <{email.sender_email}>"
+        classification = await ai_service.classify_email(
+            subject=email.subject or "", body=email.body or "", sender=sender
         )
-        app = await upsert_from_email(db, user_id, email, details)
-        if app is not None:
-            linked += 1
+        email.category = classification.get("category", "other")
+        email.priority = classification.get("priority", "medium")
+        email.processed = True
+        db.add(AIExtraction(
+            email_id=email.id,
+            raw_response=classification,
+            category=classification.get("category"),
+            priority=classification.get("priority"),
+            confidence=classification.get("confidence"),
+        ))
+
+        if email.category == "job_application":
+            details = await ai_service.extract_job_details(
+                subject=email.subject or "", body=email.body or "", sender=sender
+            )
+            app = await upsert_from_email(db, user_id, email, details)
+            if app is not None:
+                linked += 1
 
     await db.commit()
     return {"scanned": len(candidates), "linked": linked}
