@@ -8,7 +8,7 @@ from app.database import Base
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "inb_pilot_users"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)

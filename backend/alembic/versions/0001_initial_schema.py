@@ -19,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.create_table(
-        "users",
+        "inb_pilot_users",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
         sa.Column("email", sa.String(), nullable=False, unique=True),
         sa.Column("full_name", sa.String(), nullable=True),
@@ -30,9 +30,9 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "email_accounts",
+        "inb_pilot_email_accounts",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("inb_pilot_users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("provider", sa.String(), nullable=False, server_default="gmail"),
         sa.Column("access_token", sa.Text(), nullable=True),
         sa.Column("refresh_token", sa.Text(), nullable=True),
@@ -41,9 +41,9 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "emails",
+        "inb_pilot_emails",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("inb_pilot_users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("gmail_message_id", sa.String(), nullable=False, unique=True),
         sa.Column("thread_id", sa.String(), nullable=True),
         sa.Column("sender_name", sa.String(), nullable=True),
@@ -60,9 +60,9 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "attachments",
+        "inb_pilot_attachments",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("email_id", UUID(as_uuid=True), sa.ForeignKey("emails.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("email_id", UUID(as_uuid=True), sa.ForeignKey("inb_pilot_emails.id", ondelete="CASCADE"), nullable=False),
         sa.Column("file_name", sa.String(), nullable=True),
         sa.Column("file_type", sa.String(), nullable=True),
         sa.Column("file_size", sa.Integer(), nullable=True),
@@ -71,10 +71,10 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "tasks",
+        "inb_pilot_tasks",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("email_id", UUID(as_uuid=True), sa.ForeignKey("emails.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("email_id", UUID(as_uuid=True), sa.ForeignKey("inb_pilot_emails.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("inb_pilot_users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("action_type", sa.String(), server_default="other"),
@@ -86,9 +86,9 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "ai_extractions",
+        "inb_pilot_ai_extractions",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("email_id", UUID(as_uuid=True), sa.ForeignKey("emails.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("email_id", UUID(as_uuid=True), sa.ForeignKey("inb_pilot_emails.id", ondelete="CASCADE"), nullable=False),
         sa.Column("raw_response", JSONB(), nullable=False),
         sa.Column("category", sa.String(), nullable=True),
         sa.Column("priority", sa.String(), nullable=True),
@@ -97,27 +97,27 @@ def upgrade() -> None:
     )
 
     op.create_table(
-        "daily_briefings",
+        "inb_pilot_daily_briefings",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("inb_pilot_users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("briefing", sa.Text(), nullable=False),
         sa.Column("generated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
 
     # Indexes for common query patterns
-    op.create_index("ix_emails_user_id", "emails", ["user_id"])
-    op.create_index("ix_emails_category", "emails", ["category"])
-    op.create_index("ix_emails_priority", "emails", ["priority"])
-    op.create_index("ix_emails_received_at", "emails", ["received_at"])
-    op.create_index("ix_tasks_user_id", "tasks", ["user_id"])
-    op.create_index("ix_tasks_completed", "tasks", ["completed"])
+    op.create_index("ix_inb_pilot_emails_user_id", "inb_pilot_emails", ["user_id"])
+    op.create_index("ix_inb_pilot_emails_category", "inb_pilot_emails", ["category"])
+    op.create_index("ix_inb_pilot_emails_priority", "inb_pilot_emails", ["priority"])
+    op.create_index("ix_inb_pilot_emails_received_at", "inb_pilot_emails", ["received_at"])
+    op.create_index("ix_inb_pilot_tasks_user_id", "inb_pilot_tasks", ["user_id"])
+    op.create_index("ix_inb_pilot_tasks_completed", "inb_pilot_tasks", ["completed"])
 
 
 def downgrade() -> None:
-    op.drop_table("daily_briefings")
-    op.drop_table("ai_extractions")
-    op.drop_table("tasks")
-    op.drop_table("attachments")
-    op.drop_table("emails")
-    op.drop_table("email_accounts")
-    op.drop_table("users")
+    op.drop_table("inb_pilot_daily_briefings")
+    op.drop_table("inb_pilot_ai_extractions")
+    op.drop_table("inb_pilot_tasks")
+    op.drop_table("inb_pilot_attachments")
+    op.drop_table("inb_pilot_emails")
+    op.drop_table("inb_pilot_email_accounts")
+    op.drop_table("inb_pilot_users")

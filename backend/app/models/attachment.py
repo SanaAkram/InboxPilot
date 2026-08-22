@@ -8,10 +8,10 @@ from app.database import Base
 
 
 class Attachment(Base):
-    __tablename__ = "attachments"
+    __tablename__ = "inb_pilot_attachments"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("emails.id", ondelete="CASCADE"))
+    email_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("inb_pilot_emails.id", ondelete="CASCADE"))
     file_name: Mapped[str | None] = mapped_column(String)
     file_type: Mapped[str | None] = mapped_column(String)
     file_size: Mapped[int | None] = mapped_column(Integer)

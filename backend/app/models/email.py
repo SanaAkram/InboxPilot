@@ -8,10 +8,10 @@ from app.database import Base
 
 
 class Email(Base):
-    __tablename__ = "emails"
+    __tablename__ = "inb_pilot_emails"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("inb_pilot_users.id", ondelete="CASCADE"))
     gmail_message_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     thread_id: Mapped[str | None] = mapped_column(String)
     sender_name: Mapped[str | None] = mapped_column(String)

@@ -14,11 +14,11 @@ class JobApplication(Base):
     and job_application_service.upsert_from_email), or added manually by the user.
     """
 
-    __tablename__ = "job_applications"
+    __tablename__ = "inb_pilot_job_applications"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
-    email_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("emails.id", ondelete="SET NULL"), nullable=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("inb_pilot_users.id", ondelete="CASCADE"))
+    email_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("inb_pilot_emails.id", ondelete="SET NULL"), nullable=True)
     company_name: Mapped[str] = mapped_column(String, nullable=False)
     company_domain: Mapped[str | None] = mapped_column(String)
     role_title: Mapped[str | None] = mapped_column(String)
