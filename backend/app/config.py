@@ -27,6 +27,10 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        # backend/.env is often a straight copy of the repo-root .env, which
+        # also carries frontend-only vars like NEXT_PUBLIC_API_URL - ignore
+        # anything this Settings class doesn't declare instead of erroring.
+        extra = "ignore"
 
 
 @lru_cache
