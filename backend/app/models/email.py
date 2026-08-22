@@ -14,6 +14,11 @@ class Email(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("inb_pilot_users.id", ondelete="CASCADE"))
     gmail_message_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     thread_id: Mapped[str | None] = mapped_column(String)
+    # inbound | outbound. For outbound (sent) mail, sender_name/sender_email hold the
+    # *recipient* (the counterparty) instead of the user's own address - see
+    # gmail_service._parse_message. This keeps job-application matching (which keys off
+    # sender_email's domain) working unmodified regardless of direction.
+    direction: Mapped[str] = mapped_column(String, default="inbound")
     sender_name: Mapped[str | None] = mapped_column(String)
     sender_email: Mapped[str | None] = mapped_column(String)
     subject: Mapped[str | None] = mapped_column(Text)

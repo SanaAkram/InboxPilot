@@ -233,7 +233,7 @@ async def backfill_from_processed_emails(db: AsyncSession, user_id: uuid.UUID) -
     for email in candidates:
         sender = f"{email.sender_name} <{email.sender_email}>"
         classification = await ai_service.classify_email(
-            subject=email.subject or "", body=email.body or "", sender=sender
+            subject=email.subject or "", body=email.body or "", sender=sender, direction=email.direction
         )
         email.category = classification.get("category", "other")
         email.priority = classification.get("priority", "medium")
@@ -248,7 +248,7 @@ async def backfill_from_processed_emails(db: AsyncSession, user_id: uuid.UUID) -
 
         if email.category == "job_application":
             details = await ai_service.extract_job_details(
-                subject=email.subject or "", body=email.body or "", sender=sender
+                subject=email.subject or "", body=email.body or "", sender=sender, direction=email.direction
             )
             app = await upsert_from_email(db, user_id, email, details)
             if app is not None:

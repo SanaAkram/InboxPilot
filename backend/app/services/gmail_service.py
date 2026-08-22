@@ -110,17 +110,24 @@ def _extract_body(payload: dict) -> str:
     return ""
 
 
+def _parse_address_header(raw: str) -> tuple[str, str]:
+    """Parses a "Name <email>" (or bare "email") header value into (name, email)."""
+    match = re.match(r"^(.*?)\s*<(.+?)>$", raw)
+    if match:
+        return match.group(1).strip().strip('"'), match.group(2).strip()
+    return "", raw.strip()
+
+
 def _parse_message(msg: dict) -> dict[str, Any]:
     headers = {h["name"].lower(): h["value"] for h in msg.get("payload", {}).get("headers", [])}
-    sender_raw = headers.get("from", "")
-    # Parse "Name <email>" format
-    match = re.match(r"^(.*?)\s*<(.+?)>$", sender_raw)
-    if match:
-        sender_name = match.group(1).strip().strip('"')
-        sender_email = match.group(2).strip()
-    else:
-        sender_name = ""
-        sender_email = sender_raw.strip()
+
+    # Gmail tags every message it sent from this account with the SENT label. For those,
+    # the party we actually care about (for display and for job-application company
+    # matching) is the recipient, not the account's own address in "From" - so read "To"
+    # instead. First "To" address only; CC'd/BCC'd parties aren't tracked.
+    is_outbound = "SENT" in msg.get("labelIds", [])
+    address_header = headers.get("to", "") if is_outbound else headers.get("from", "")
+    counterparty_name, counterparty_email = _parse_address_header(address_header.split(",")[0])
 
     date_str = headers.get("date", "")
     try:
@@ -133,8 +140,9 @@ def _parse_message(msg: dict) -> dict[str, Any]:
     return {
         "gmail_message_id": msg["id"],
         "thread_id": msg.get("threadId"),
-        "sender_name": sender_name,
-        "sender_email": sender_email,
+        "direction": "outbound" if is_outbound else "inbound",
+        "sender_name": counterparty_name,
+        "sender_email": counterparty_email,
         "subject": headers.get("subject", "(no subject)"),
         "body": body,
         "snippet": msg.get("snippet", ""),
@@ -146,21 +154,28 @@ async def sync_emails(
     access_token: str,
     refresh_token: str,
     token_expiry: datetime | None,
-    max_results: int = 50,
+    max_results: int = 30,
 ) -> list[dict[str, Any]]:
-    """Fetch latest emails from Gmail and return parsed message dicts."""
+    """
+    Fetch the most recent inbox AND sent emails from Gmail (each up to max_results) and
+    return parsed message dicts. Sent mail matters here specifically because job
+    applications themselves are usually something the user sent, not received - only
+    confirmations/replies/rejections show up in the inbox.
+    """
     creds = _get_credentials(access_token, refresh_token, token_expiry)
     if creds.expired and creds.refresh_token:
         creds.refresh(Request())
 
     service = build("gmail", "v1", credentials=creds)
-    result = service.users().messages().list(userId="me", maxResults=max_results).execute()
-    messages_meta = result.get("messages", [])
 
     parsed = []
-    for meta in messages_meta:
-        msg = service.users().messages().get(userId="me", id=meta["id"], format="full").execute()
-        parsed.append(_parse_message(msg))
+    for label in ("INBOX", "SENT"):
+        result = service.users().messages().list(
+            userId="me", labelIds=[label], maxResults=max_results
+        ).execute()
+        for meta in result.get("messages", []):
+            msg = service.users().messages().get(userId="me", id=meta["id"], format="full").execute()
+            parsed.append(_parse_message(msg))
     return parsed
 
 

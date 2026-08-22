@@ -7,6 +7,7 @@ class EmailOut(BaseModel):
     id: uuid.UUID
     gmail_message_id: str
     thread_id: str | None
+    direction: str
     sender_name: str | None
     sender_email: str | None
     subject: str | None
@@ -25,6 +26,7 @@ class EmailOut(BaseModel):
 class EmailListOut(BaseModel):
     id: uuid.UUID
     gmail_message_id: str
+    direction: str
     sender_name: str | None
     sender_email: str | None
     subject: str | None

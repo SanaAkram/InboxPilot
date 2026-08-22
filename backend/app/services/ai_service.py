@@ -78,7 +78,15 @@ async def _call_ai(
         return response.choices[0].message.content or ""
 
 
-async def classify_email(subject: str, body: str, sender: str) -> dict:
+def _direction_line(sender: str, direction: str) -> str:
+    """Frames the counterparty line correctly either way - outbound mail was written
+    BY the user TO this address, not received from it, and getting that backwards
+    misleads the model about who's speaking (e.g. reading a sent cover letter as if
+    the company itself wrote it)."""
+    return f"To (this was sent BY the user): {sender}" if direction == "outbound" else f"From: {sender}"
+
+
+async def classify_email(subject: str, body: str, sender: str, direction: str = "inbound") -> dict:
     """
     Returns:
         {
@@ -93,16 +101,17 @@ async def classify_email(subject: str, body: str, sender: str) -> dict:
 
 Analyze this email and return ONLY valid JSON with these exact fields:
 - category: one of [invoice, meeting, support, urgent, followup, sales, personal, job_application, other]
-  Use "job_application" for anything related to a job you applied for: application confirmations,
-  recruiter outreach about a role you applied to, interview invites/scheduling, assessments,
-  offers, or rejections.
+  Use "job_application" for anything related to a job applied for: application confirmations
+  (including ones the user sent themselves, e.g. a cover letter or "please find my application"
+  email), recruiter outreach about a role, interview invites/scheduling, assessments, offers,
+  or rejections.
 - priority: one of [low, medium, high, critical]
 - summary: one sentence summarizing the email
 - action_required: boolean, whether the user needs to take action
 - confidence: float between 0.0 and 1.0
 
 Email:
-From: {sender}
+{_direction_line(sender, direction)}
 Subject: {subject}
 Body:
 {body[:2000]}
@@ -113,7 +122,7 @@ Respond with JSON only. No markdown, no explanation."""
     return json.loads(text or "{}")
 
 
-async def extract_job_details(subject: str, body: str, sender: str) -> dict:
+async def extract_job_details(subject: str, body: str, sender: str, direction: str = "inbound") -> dict:
     """
     Pulls structured job-application details out of an email already classified as
     `job_application`. Used to populate the applications tracker (company, role, stage).
@@ -130,12 +139,14 @@ async def extract_job_details(subject: str, body: str, sender: str) -> dict:
     prompt = f"""You are an AI that extracts job application details from an email.
 
 Analyze this email and return ONLY valid JSON with these exact fields:
-- is_job_related: boolean, true only if this email is genuinely about a job the recipient applied for
+- is_job_related: boolean, true only if this email is genuinely about a job applied for
 - company_name: the hiring company's name (not a job board or ATS platform like Greenhouse/Lever
   unless no company name is otherwise identifiable), or null if unknown
 - role_title: the job title being applied for, or null if not mentioned
 - stage: one of [applied, interviewing, offer, rejected, withdrawn, other]
-  - "applied": application received/submitted confirmation, no human response yet
+  - "applied": application sent/submitted/received, no human response yet - this includes an
+    email the user sent themselves applying for the role, e.g. a cover letter or an
+    "attached is my application/CV" email
   - "interviewing": interview invite, scheduling, or assessment/task request
   - "offer": a job offer
   - "rejected": rejection / "moving forward with other candidates" / role filled
@@ -144,7 +155,7 @@ Analyze this email and return ONLY valid JSON with these exact fields:
 - confidence: float between 0.0 and 1.0
 
 Email:
-From: {sender}
+{_direction_line(sender, direction)}
 Subject: {subject}
 Body:
 {body[:2000]}

@@ -21,6 +21,7 @@ async def list_emails(
     category: str | None = Query(None),
     priority: str | None = Query(None),
     status: str | None = Query(None),
+    direction: str | None = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -33,6 +34,8 @@ async def list_emails(
         query = query.where(Email.priority == priority)
     if status:
         query = query.where(Email.status == status)
+    if direction:
+        query = query.where(Email.direction == direction)
 
     count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar_one()
@@ -119,6 +122,7 @@ async def process_email(
         subject=email.subject or "",
         body=email.body or "",
         sender=f"{email.sender_name} <{email.sender_email}>",
+        direction=email.direction,
     )
 
     email.category = classification.get("category", "other")
@@ -150,6 +154,7 @@ async def process_email(
             subject=email.subject or "",
             body=email.body or "",
             sender=f"{email.sender_name} <{email.sender_email}>",
+            direction=email.direction,
         )
         job_application = await job_application_service.upsert_from_email(
             db, current_user.id, email, job_details

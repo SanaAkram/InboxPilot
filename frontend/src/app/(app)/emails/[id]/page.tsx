@@ -66,6 +66,24 @@ export default function EmailDetailPage() {
     load();
   }, [id]);
 
+  async function handleStatusChange(status: string) {
+    if (!email) return;
+    const previous = email.status;
+    setEmail({ ...email, status }); // optimistic
+    try {
+      await emails.updateStatus(id, status);
+    } catch (e: unknown) {
+      setEmail((cur) => (cur ? { ...cur, status: previous } : cur));
+      toast({ title: "Failed to update status", description: (e as Error).message, variant: "destructive" });
+    }
+  }
+
+  async function handleCompleteTask(taskId: string) {
+    await tasks.update(taskId, { completed: true });
+    setEmailTasks((cur) => cur.map((t) => (t.id === taskId ? { ...t, completed: true } : t)));
+    toast({ title: "Task completed", variant: "success" });
+  }
+
   async function handleProcess() {
     setProcessing(true);
     try {
@@ -113,12 +131,21 @@ export default function EmailDetailPage() {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="capitalize">{email.category}</Badge>
               <PriorityBadge priority={email.priority} />
               <Badge variant={email.processed ? "success" : "secondary"}>
                 {email.processed ? "Processed" : "Unprocessed"}
               </Badge>
+              <select
+                value={email.status}
+                onChange={(e) => handleStatusChange(e.target.value)}
+                className="rounded-md border border-input bg-background px-2 py-1 text-xs capitalize focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {["new", "reviewed", "archived"].map((s) => (
+                  <option key={s} value={s} className="capitalize">{s}</option>
+                ))}
+              </select>
             </div>
           </div>
         </CardHeader>
@@ -144,8 +171,20 @@ export default function EmailDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {emailTasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between rounded-md border p-3">
-                <div>
+              <div key={task.id} className="flex items-center gap-3 rounded-md border p-3">
+                <button
+                  onClick={() => !task.completed && handleCompleteTask(task.id)}
+                  disabled={task.completed}
+                  aria-label={task.completed ? "Task completed" : "Mark task complete"}
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                    task.completed
+                      ? "border-green-500 bg-green-500"
+                      : "border-muted-foreground hover:border-primary"
+                  }`}
+                >
+                  {task.completed && <Check className="h-3 w-3 text-white" />}
+                </button>
+                <div className="flex-1 min-w-0">
                   <p className={`font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}>
                     {task.title}
                   </p>
@@ -153,8 +192,8 @@ export default function EmailDetailPage() {
                     <p className="text-xs text-muted-foreground">Due: {new Date(task.deadline).toLocaleDateString()}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="capitalize text-xs">{task.action_type}</Badge>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Badge variant="outline" className="capitalize text-xs hidden sm:inline-flex">{task.action_type}</Badge>
                   <PriorityBadge priority={task.priority} />
                 </div>
               </div>
