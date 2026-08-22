@@ -90,7 +90,18 @@ async def sync_emails(
     )
 
     new_count = 0
+    seen_in_batch: set[str] = set()
     for msg in messages:
+        # A message CC'd/sent to the user's own address carries both INBOX and SENT
+        # labels, so it can appear in both the inbound and outbound fetches within the
+        # same sync call - dedupe against this batch too, not just already-committed
+        # rows, since nothing here is committed (and thus visible to the query below)
+        # until the loop finishes. Without this, a duplicate gmail_message_id (a unique
+        # column) throws an IntegrityError on commit and fails the whole sync.
+        if msg["gmail_message_id"] in seen_in_batch:
+            continue
+        seen_in_batch.add(msg["gmail_message_id"])
+
         existing = await db.execute(
             select(Email).where(Email.gmail_message_id == msg["gmail_message_id"])
         )
