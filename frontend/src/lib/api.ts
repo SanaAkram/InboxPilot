@@ -101,6 +101,7 @@ export interface User {
 export interface EmailListItem {
   id: string;
   gmail_message_id: string;
+  direction: "inbound" | "outbound";
   sender_name: string | null;
   sender_email: string | null;
   subject: string | null;
@@ -129,6 +130,7 @@ export interface EmailFilter {
   category?: string;
   priority?: string;
   status?: string;
+  direction?: string;
   page?: number;
   limit?: number;
 }

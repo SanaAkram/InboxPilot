@@ -8,13 +8,13 @@ InboxPilot connects to Gmail, classifies emails using Claude (Anthropic), extrac
 
 ## Features
 
-- **Gmail OAuth integration** — read-only access, no passwords stored
+- **Gmail OAuth integration** — read-only access, no passwords stored, syncs both received *and* sent mail (job applications are usually something you sent, not received)
 - **AI email classification** — category, priority, and confidence score
 - **Automated task extraction** — converts email content into structured tasks
 - **Daily briefing** — AI-generated summary of your inbox and pending tasks
 - **Dashboard** — real-time stats and briefing overview
 - **Task management** — create, complete, and filter tasks
-- **Job application tracker** — auto-detects job-application emails, groups them by company, tracks stage (applied → interviewing → offer/rejected), and flags companies that haven't responded in 14+ days; manual add/edit supported too
+- **Job application tracker** — auto-detects job-application emails (sent *or* received), groups them by company, tracks stage (applied → interviewing → offer/rejected), and flags companies that haven't responded in 14+ days; manual add/edit supported too. "Scan inbox" classifies any not-yet-processed mail in batches rather than requiring each email to be opened individually.
 
 ---
 

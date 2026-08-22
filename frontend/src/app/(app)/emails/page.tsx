@@ -11,12 +11,15 @@ import { emails, type EmailListItem, type EmailListResponse } from "@/lib/api";
 const CATEGORIES = ["", "invoice", "meeting", "support", "urgent", "followup", "sales", "personal", "job_application", "other"];
 const PRIORITIES = ["", "low", "medium", "high", "critical"];
 const STATUSES = ["", "new", "reviewed", "archived"];
+const DIRECTIONS = ["", "inbound", "outbound"];
+const DIRECTION_LABELS: Record<string, string> = { inbound: "Received", outbound: "Sent" };
 
 export default function EmailsPage() {
   const [data, setData] = useState<EmailListResponse | null>(null);
   const [category, setCategory] = useState("");
   const [priority, setPriority] = useState("");
   const [status, setStatus] = useState("");
+  const [direction, setDirection] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
@@ -27,6 +30,7 @@ export default function EmailsPage() {
         category: category || undefined,
         priority: priority || undefined,
         status: status || undefined,
+        direction: direction || undefined,
         page,
         limit: 20,
       });
@@ -36,7 +40,7 @@ export default function EmailsPage() {
     }
   }
 
-  useEffect(() => { load(); }, [category, priority, status, page]);
+  useEffect(() => { load(); }, [category, priority, status, direction, page]);
 
   const totalPages = data ? Math.ceil(data.total / 20) : 1;
 
@@ -52,6 +56,7 @@ export default function EmailsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         {[
+          { label: "Direction", value: direction, setValue: setDirection, options: DIRECTIONS },
           { label: "Category", value: category, setValue: setCategory, options: CATEGORIES },
           { label: "Priority", value: priority, setValue: setPriority, options: PRIORITIES },
           { label: "Status", value: status, setValue: setStatus, options: STATUSES },
@@ -64,31 +69,37 @@ export default function EmailsPage() {
           >
             <option value="">{label}: All</option>
             {options.filter(Boolean).map((o) => (
-              <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>
+              <option key={o} value={o}>{DIRECTION_LABELS[o] ?? o.charAt(0).toUpperCase() + o.slice(1)}</option>
             ))}
           </select>
         ))}
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card overflow-hidden">
+      <div className="rounded-lg border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50">
             <tr>
-              {["Sender", "Subject", "Category", "Priority", "Status", "Received"].map((h) => (
-                <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>
+              {["", "From / To", "Subject", "Category", "Priority", "Status", "Date"].map((h, i) => (
+                <th key={i} className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
             ) : data?.items.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No emails found. Try syncing Gmail.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No emails found. Try syncing Gmail.</td></tr>
             ) : (
               data?.items.map((email: EmailListItem) => (
                 <tr key={email.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3">
+                    <Badge variant={email.direction === "outbound" ? "outline" : "secondary"} className="text-xs whitespace-nowrap">
+                      {DIRECTION_LABELS[email.direction] ?? email.direction}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="text-xs text-muted-foreground">{email.direction === "outbound" ? "To" : "From"}</div>
                     <div className="font-medium">{email.sender_name || "—"}</div>
                     <div className="text-xs text-muted-foreground">{email.sender_email}</div>
                   </td>

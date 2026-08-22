@@ -123,6 +123,7 @@ export default function EmailDetailPage() {
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
+              <p className="text-xs text-muted-foreground">{email.direction === "outbound" ? "To" : "From"}</p>
               <p className="font-semibold">{email.sender_name || email.sender_email}</p>
               <p className="text-sm text-muted-foreground">{email.sender_email}</p>
               {email.received_at && (
@@ -132,6 +133,9 @@ export default function EmailDetailPage() {
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={email.direction === "outbound" ? "outline" : "secondary"}>
+                {email.direction === "outbound" ? "Sent" : "Received"}
+              </Badge>
               <Badge variant="outline" className="capitalize">{email.category}</Badge>
               <PriorityBadge priority={email.priority} />
               <Badge variant={email.processed ? "success" : "secondary"}>
