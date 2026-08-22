@@ -10,6 +10,38 @@ import { PriorityBadge } from "@/components/priority-badge";
 import { emails, tasks, type Email, type Task } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
+const URL_PATTERN = /https?:\/\/[^\s]+/g;
+
+/** Splits body text on raw URLs and renders them as truncated links, so long
+ *  tracking URLs (no whitespace for the browser to wrap on) don't turn into
+ *  an unreadable wall of text. */
+function linkifyBody(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  URL_PATTERN.lastIndex = 0;
+  while ((match = URL_PATTERN.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    const url = match[0];
+    parts.push(
+      <a
+        key={key++}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-2 hover:no-underline"
+      >
+        {url.length > 60 ? `${url.slice(0, 57)}…` : url}
+      </a>
+    );
+    lastIndex = match.index + url.length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
+
 export default function EmailDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -98,8 +130,8 @@ export default function EmailDetailPage() {
             </Button>
           </div>
           <div className="prose prose-sm max-w-none">
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed bg-muted/30 rounded-lg p-4 border">
-              {email.body || email.snippet || "No content available."}
+            <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed bg-muted/30 rounded-lg p-4 border">
+              {linkifyBody(email.body || email.snippet || "No content available.")}
             </pre>
           </div>
         </CardContent>
