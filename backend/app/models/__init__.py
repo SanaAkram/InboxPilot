@@ -5,6 +5,7 @@ from app.models.attachment import Attachment
 from app.models.task import Task
 from app.models.ai_extraction import AIExtraction
 from app.models.daily_briefing import DailyBriefing
+from app.models.job_application import JobApplication
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "Task",
     "AIExtraction",
     "DailyBriefing",
+    "JobApplication",
 ]

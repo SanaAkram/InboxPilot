@@ -11,7 +11,7 @@ from app.models.email import Email
 from app.models.email_account import EmailAccount
 from app.models.user import User
 from app.schemas.email import EmailListOut, EmailOut, EmailStatusUpdate
-from app.services import ai_service, gmail_service, task_service
+from app.services import ai_service, gmail_service, job_application_service, task_service
 
 router = APIRouter()
 
@@ -144,10 +144,22 @@ async def process_email(
         db, current_user.id, email.id, extracted
     )
 
+    job_application = None
+    if email.category == "job_application":
+        job_details = await ai_service.extract_job_details(
+            subject=email.subject or "",
+            body=email.body or "",
+            sender=f"{email.sender_name} <{email.sender_email}>",
+        )
+        job_application = await job_application_service.upsert_from_email(
+            db, current_user.id, email, job_details
+        )
+
     await db.commit()
     return {
         "classification": classification,
         "tasks_created": len(created_tasks),
+        "job_application_id": str(job_application.id) if job_application else None,
     }
 
 

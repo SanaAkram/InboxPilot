@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Mail, CheckSquare, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, Mail, CheckSquare, FileText, Briefcase, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/api";
 
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/emails", label: "Emails", icon: Mail },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/applications", label: "Applications", icon: Briefcase },
   { href: "/briefing", label: "Briefing", icon: FileText },
 ];
 

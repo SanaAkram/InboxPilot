@@ -14,6 +14,7 @@ InboxPilot connects to Gmail, classifies emails using Claude (Anthropic), extrac
 - **Daily briefing** — AI-generated summary of your inbox and pending tasks
 - **Dashboard** — real-time stats and briefing overview
 - **Task management** — create, complete, and filter tasks
+- **Job application tracker** — auto-detects job-application emails, groups them by company, tracks stage (applied → interviewing → offer/rejected), and flags companies that haven't responded in 14+ days; manual add/edit supported too
 
 ---
 
@@ -110,6 +111,11 @@ npm run dev
 | PATCH | `/api/tasks/{id}` | Update / complete task |
 | POST | `/api/briefings/generate` | Generate AI daily briefing |
 | GET | `/api/briefings/latest` | Get latest briefing |
+| GET | `/api/job-applications` | List tracked applications (filter by status, waiting-only, search) |
+| POST | `/api/job-applications` | Add a company manually |
+| PATCH | `/api/job-applications/{id}` | Update status / role / notes |
+| DELETE | `/api/job-applications/{id}` | Remove an application |
+| POST | `/api/job-applications/scan` | Re-scan already-classified emails and (re)link applications |
 
 Full interactive docs at `/docs` (Swagger UI).
 
@@ -125,9 +131,12 @@ Email Ingestion Service (sync_emails)
 PostgreSQL (emails, tasks, ai_extractions)
     ↓
 AI Service (Claude claude-opus-4-8)
-  ├─ classify_email()     → category, priority, confidence
-  ├─ extract_tasks()      → structured task list
-  └─ generate_briefing()  → plain-text daily summary
+  ├─ classify_email()        → category, priority, confidence
+  ├─ extract_tasks()         → structured task list
+  ├─ extract_job_details()   → company, role, application stage
+  └─ generate_briefing()     → plain-text daily summary
+    ↓
+PostgreSQL (+ job_applications, grouped by company)
     ↓
 FastAPI REST API
     ↓
@@ -149,9 +158,10 @@ InboxPilot/
 │   │   ├── schemas/          # Pydantic request/response schemas
 │   │   ├── routers/          # API route handlers
 │   │   ├── services/
-│   │   │   ├── gmail_service.py   # OAuth + email sync
-│   │   │   ├── ai_service.py      # Claude prompts (Anthropic)
-│   │   │   └── task_service.py    # Task CRUD helpers
+│   │   │   ├── gmail_service.py           # OAuth + email sync
+│   │   │   ├── ai_service.py              # Claude prompts (Anthropic)
+│   │   │   ├── task_service.py            # Task CRUD helpers
+│   │   │   └── job_application_service.py # Application tracker upsert/CRUD/scan
 │   │   └── middleware/
 │   │       └── auth.py       # JWT bearer authentication
 │   ├── alembic/              # Database migrations

@@ -69,6 +69,22 @@ export const briefings = {
   latest: () => request<Briefing>("/api/briefings/latest"),
 };
 
+// Job applications
+export const jobApplications = {
+  list: (params?: JobApplicationFilter) => {
+    const qs = new URLSearchParams(
+      Object.entries(params ?? {}).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])
+    ).toString();
+    return request<JobApplication[]>(`/api/job-applications${qs ? `?${qs}` : ""}`);
+  },
+  create: (data: JobApplicationCreate) =>
+    request<JobApplication>("/api/job-applications", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<JobApplicationCreate>) =>
+    request<JobApplication>(`/api/job-applications/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request(`/api/job-applications/${id}`, { method: "DELETE" }),
+  scan: () => request<{ scanned: number; linked: number }>("/api/job-applications/scan", { method: "POST" }),
+};
+
 // Types
 export interface User {
   id: string;
@@ -154,4 +170,35 @@ export interface Briefing {
   user_id: string;
   briefing: string;
   generated_at: string;
+}
+
+export interface JobApplication {
+  id: string;
+  email_id: string | null;
+  company_name: string;
+  company_domain: string | null;
+  role_title: string | null;
+  status: string;
+  source: "ai" | "manual";
+  applied_at: string | null;
+  last_contact_at: string | null;
+  notes: string | null;
+  awaiting_response: boolean;
+  days_since_contact: number | null;
+  created_at: string;
+}
+
+export interface JobApplicationCreate {
+  company_name: string;
+  role_title?: string;
+  status?: string;
+  applied_at?: string;
+  notes?: string;
+}
+
+export interface JobApplicationFilter {
+  status?: string;
+  waiting_only?: boolean;
+  search?: string;
+  stale_days?: number;
 }

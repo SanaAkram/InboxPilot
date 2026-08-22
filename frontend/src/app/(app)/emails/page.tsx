@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { emails, type EmailListItem, type EmailListResponse } from "@/lib/api";
 
-const CATEGORIES = ["", "invoice", "meeting", "support", "urgent", "followup", "sales", "personal", "other"];
+const CATEGORIES = ["", "invoice", "meeting", "support", "urgent", "followup", "sales", "personal", "job_application", "other"];
 const PRIORITIES = ["", "low", "medium", "high", "critical"];
 const STATUSES = ["", "new", "reviewed", "archived"];
 

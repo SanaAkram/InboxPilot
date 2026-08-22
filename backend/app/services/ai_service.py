@@ -82,7 +82,7 @@ async def classify_email(subject: str, body: str, sender: str) -> dict:
     """
     Returns:
         {
-            "category": str,   # invoice|meeting|support|urgent|followup|sales|personal|other
+            "category": str,   # invoice|meeting|support|urgent|followup|sales|personal|job_application|other
             "priority": str,   # low|medium|high|critical
             "summary": str,
             "action_required": bool,
@@ -92,7 +92,10 @@ async def classify_email(subject: str, body: str, sender: str) -> dict:
     prompt = f"""You are an AI email classifier for a productivity tool.
 
 Analyze this email and return ONLY valid JSON with these exact fields:
-- category: one of [invoice, meeting, support, urgent, followup, sales, personal, other]
+- category: one of [invoice, meeting, support, urgent, followup, sales, personal, job_application, other]
+  Use "job_application" for anything related to a job you applied for: application confirmations,
+  recruiter outreach about a role you applied to, interview invites/scheduling, assessments,
+  offers, or rejections.
 - priority: one of [low, medium, high, critical]
 - summary: one sentence summarizing the email
 - action_required: boolean, whether the user needs to take action
@@ -108,6 +111,48 @@ Respond with JSON only. No markdown, no explanation."""
 
     text = await _call_ai(prompt, max_tokens=512, temperature=0.1, json_mode=True)
     return json.loads(text or "{}")
+
+
+async def extract_job_details(subject: str, body: str, sender: str) -> dict:
+    """
+    Pulls structured job-application details out of an email already classified as
+    `job_application`. Used to populate the applications tracker (company, role, stage).
+
+    Returns:
+        {
+            "is_job_related": bool,
+            "company_name": str | null,
+            "role_title": str | null,
+            "stage": str,   # applied|interviewing|offer|rejected|withdrawn|other
+            "confidence": float
+        }
+    """
+    prompt = f"""You are an AI that extracts job application details from an email.
+
+Analyze this email and return ONLY valid JSON with these exact fields:
+- is_job_related: boolean, true only if this email is genuinely about a job the recipient applied for
+- company_name: the hiring company's name (not a job board or ATS platform like Greenhouse/Lever
+  unless no company name is otherwise identifiable), or null if unknown
+- role_title: the job title being applied for, or null if not mentioned
+- stage: one of [applied, interviewing, offer, rejected, withdrawn, other]
+  - "applied": application received/submitted confirmation, no human response yet
+  - "interviewing": interview invite, scheduling, or assessment/task request
+  - "offer": a job offer
+  - "rejected": rejection / "moving forward with other candidates" / role filled
+  - "withdrawn": the candidate withdrew
+  - "other": job-related but doesn't fit the above
+- confidence: float between 0.0 and 1.0
+
+Email:
+From: {sender}
+Subject: {subject}
+Body:
+{body[:2000]}
+
+Respond with JSON only. No markdown, no explanation."""
+
+    text = await _call_ai(prompt, max_tokens=384, temperature=0.1, json_mode=True)
+    return json.loads(text or '{"is_job_related": false}')
 
 
 async def extract_tasks(subject: str, body: str, sender: str) -> dict:

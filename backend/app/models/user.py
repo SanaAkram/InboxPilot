@@ -22,3 +22,4 @@ class User(Base):
     emails: Mapped[list["Email"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     tasks: Mapped[list["Task"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     daily_briefings: Mapped[list["DailyBriefing"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    job_applications: Mapped[list["JobApplication"]] = relationship(back_populates="user", cascade="all, delete-orphan")
