@@ -5,6 +5,11 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+asyncpg://inboxpilot:inboxpilot@db:5432/inboxpilot"
+    # Postgres schema to operate in. Lets one physical database (e.g. one
+    # Supabase project) cleanly separate local dev from production without
+    # touching any model or migration file - everything resolves through
+    # Postgres's own search_path. Leave as "public" in production.
+    db_schema: str = "public"
 
     # JWT
     secret_key: str = "change-me-in-production"
