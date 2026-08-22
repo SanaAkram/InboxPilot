@@ -1,4 +1,9 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// In production (Vercel), the backend is reached through the same-origin
+// "/api/*" rewrite in vercel.json, so the base URL should be empty (relative)
+// unless NEXT_PUBLIC_API_URL explicitly overrides it. Local dev still targets
+// the standalone uvicorn server on :8000 by default.
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
