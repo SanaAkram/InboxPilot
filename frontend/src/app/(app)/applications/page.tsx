@@ -90,7 +90,7 @@ export default function ApplicationsPage() {
   }
 
   return (
-    <div className="space-y-4 max-w-4xl">
+    <div className="space-y-4 max-w-4xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Applications</h1>
         <Button variant="outline" onClick={handleScan} disabled={scanning} className="gap-2">
